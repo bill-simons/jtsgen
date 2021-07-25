@@ -48,10 +48,10 @@ public class DefaultJavaTypeConverter implements JavaTypeConverter {
 
     private final TypeElement javaLangObjectElement;
     private final TypeElement javaLangEnumElement;
-    private final TSProcessingInfo processingInfo;
+    protected final TSProcessingInfo processingInfo;
 
 
-    private static final Logger LOG = Logger.getLogger(TypeScriptAnnotationProcessor.class.getName());
+    protected static final Logger LOG = Logger.getLogger(TypeScriptAnnotationProcessor.class.getName());
 
     DefaultJavaTypeConverter(TSProcessingInfo processingInfo) {
         this.processingInfo = processingInfo;
@@ -113,11 +113,11 @@ public class DefaultJavaTypeConverter implements JavaTypeConverter {
     }
 
 
-    private Optional<String> commentFrom(TypeElement element) {
+    protected Optional<String> commentFrom(TypeElement element) {
         return Optional.ofNullable(this.processingInfo.getpEnv().getElementUtils().getDocComment(element));
     }
 
-    private List<TSType> convertSuperTypes(TypeElement element) {
+    protected List<TSType> convertSuperTypes(TypeElement element) {
         final List<? extends TypeMirror> superTypes = this.processingInfo.getpEnv().getTypeUtils().directSupertypes(element.asType());
         LOG.finest(() -> "DJTC direct supertypes of " + element + " are " + superTypes);
         List<TypeElement> filteredSuperTypes = superTypes
@@ -142,7 +142,7 @@ public class DefaultJavaTypeConverter implements JavaTypeConverter {
     }
 
 
-    private List<Either<TSTargetType, TSType>> convertBounds(TypeParameterElement element) {
+    protected List<Either<TSTargetType, TSType>> convertBounds(TypeParameterElement element) {
         if (element.getBounds().isEmpty()) return new ArrayList<>();
 
         List<Either<TSTargetType, TSType>> result = element.getBounds().stream()
@@ -170,7 +170,7 @@ public class DefaultJavaTypeConverter implements JavaTypeConverter {
     }
 
     // This is outside of lambda, bc tis way typings more clear
-    private  Either<TSTargetType, Optional<TSType>> typeElementEitherToTargetOrTSType(TypeElement x) {
+    protected  Either<TSTargetType, Optional<TSType>> typeElementEitherToTargetOrTSType(TypeElement x) {
         LOG.info("DJTC converting Bound " + x);
         Optional<TSTargetType> tsTargetType = convertedByDSL(x);
         return tsTargetType
@@ -204,7 +204,7 @@ public class DefaultJavaTypeConverter implements JavaTypeConverter {
         return r;
     }
 
-    private Collection<? extends TSMember> findEnumMembers(TypeElement element) {
+    protected Collection<? extends TSMember> findEnumMembers(TypeElement element) {
         return element.getEnclosedElements().stream()
                 .filter(x -> x.getKind() == ENUM_CONSTANT)
                 .map(this::convertEnumMemberByStrategy
@@ -235,7 +235,7 @@ public class DefaultJavaTypeConverter implements JavaTypeConverter {
         return result;
     }
 
-    private Collection<? extends TSMember> findMembers(TypeElement e) {
+    protected Collection<? extends TSMember> findMembers(TypeElement e) {
         LOG.fine(() -> "DJTC find members in  in java type " + e);
         JavaTypeElementExtractingVisitor visitor = new JavaTypeElementExtractingVisitor(e, processingInfo, this);
         e.getEnclosedElements().stream()

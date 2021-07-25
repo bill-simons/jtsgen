@@ -23,9 +23,12 @@ import dz.jtsgen.processor.helper.Sets;
 import dz.jtsgen.processor.jtp.conv.visitors.JavaTypeConverter;
 import dz.jtsgen.processor.jtp.conv.visitors.TSAVisitor;
 import dz.jtsgen.processor.jtp.info.TSProcessingInfo;
+import dz.jtsgen.processor.model.TSType;
 
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
+import javax.lang.model.util.SimpleElementVisitor8;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,11 +51,14 @@ public class TypeScriptAnnotationProcessor implements JavaTypeProcessor {
     private final JavaTypeConverter javaConverter;
 
 
-    public TypeScriptAnnotationProcessor(TSProcessingInfo processingInfo) {
-        this.processingInfo = processingInfo;
+   public TypeScriptAnnotationProcessor(TSProcessingInfo processingInfo) {
+     // this might be changed using a different converter strategy
+     this(processingInfo,new DefaultJavaTypeConverter(processingInfo));
+    }
 
-        // this might me changed using a different converter strategy
-        javaConverter = new DefaultJavaTypeConverter(processingInfo);
+    public TypeScriptAnnotationProcessor(TSProcessingInfo processingInfo, JavaTypeConverter typeConverter) {
+      this.processingInfo = processingInfo;
+      this.javaConverter = typeConverter;
     }
 
     @Override
@@ -64,12 +70,15 @@ public class TypeScriptAnnotationProcessor implements JavaTypeProcessor {
                 ));
     }
 
+    protected SimpleElementVisitor8<Optional<TSType>, JavaTypeConverter> makeVisitor() {
+      return new TSAVisitor();
+    }
 
     @Override
     public void processElements(Set<Element> elements) {
-        TSAVisitor tsaVisitor = new TSAVisitor();
+      SimpleElementVisitor8<Optional<TSType>, JavaTypeConverter> visitor = makeVisitor();
         for (Element e : elements) {
-            tsaVisitor.visit(e, javaConverter).ifPresent(x -> {
+          visitor.visit(e, javaConverter).ifPresent(x -> {
                         processingInfo.getTsModel().addTSTypes(singletonList(x));
                         LOG.log(Level.FINEST, () -> String.format("TSAP added %s to model", x.toString()));
                     }

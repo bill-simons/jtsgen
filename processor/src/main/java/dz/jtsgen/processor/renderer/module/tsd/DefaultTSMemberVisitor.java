@@ -20,14 +20,14 @@
 
 package dz.jtsgen.processor.renderer.module.tsd;
 
-import dz.jtsgen.annotations.EnumExportStrategy;
+import java.io.PrintWriter;
+
 import dz.jtsgen.processor.helper.IdentHelper;
 import dz.jtsgen.processor.model.TSEnumMember;
+import dz.jtsgen.processor.model.TSExecutableMember;
 import dz.jtsgen.processor.model.TSMember;
+import dz.jtsgen.processor.model.TSRegularMember;
 import dz.jtsgen.processor.model.rendering.TSMemberVisitor;
-import dz.jtsgen.processor.renderer.model.TypeScriptRenderModel;
-
-import java.io.PrintWriter;
 
 
 public class DefaultTSMemberVisitor extends OutputVisitor implements TSMemberVisitor {
@@ -43,6 +43,35 @@ public class DefaultTSMemberVisitor extends OutputVisitor implements TSMemberVis
         getOut().print(IdentHelper.identPrefix(ident));
         if (x.getReadOnly()) getOut().print("readonly ");
         getOut().print(x.getName());
+        getOut().print(": ");
+        getOut().print(x.getType());
+        getOut().println(";");
+    }
+
+    @Override
+    public void visit(TSExecutableMember x, int ident) {
+        x.getComment().ifPresent( comment -> tsComment(comment,ident));
+        getOut().print(IdentHelper.identPrefix(ident));
+        if (x.getReadOnly()) getOut().print("readonly ");
+        getOut().print(x.getName());
+        getOut().print("(");
+        TSRegularMember[] parameters = x.getParameters();
+        if(parameters != null && parameters.length > 0) {
+            boolean first = true;
+            for (TSRegularMember parameter : parameters) {
+                if(parameter != null) {
+                    if(first) {
+                        first = false;
+                    } else {
+                        getOut().print(",");
+                    }
+                    getOut().print(parameter.getName());
+                    getOut().print(": ");
+                    getOut().print(parameter.getType());
+                }
+            }
+        }
+        getOut().print(")");
         getOut().print(": ");
         getOut().print(x.getType());
         getOut().println(";");
