@@ -21,6 +21,7 @@
 package dz.jtsgen.processor.jtp.conv;
 
 import dz.jtsgen.annotations.TSIgnore;
+import dz.jtsgen.annotations.TSOptional;
 import dz.jtsgen.annotations.TSReadOnly;
 import dz.jtsgen.processor.jtp.conv.visitors.JavaTypeConverter;
 import dz.jtsgen.processor.jtp.info.TSProcessingInfo;
@@ -84,6 +85,7 @@ class JavaTypeElementExtractingVisitor extends SimpleElementVisitor8<Void, Void>
         final String name = e.getSimpleName().toString();
         final boolean isIgnored = isIgnored(e);
         final boolean  isReadOnlyAnnotation = readOnlyAnnotation(e) || readOnlyAnnotation(this.typeElementToConvert);
+        final boolean  isOptionalAnnotation = optionalAnnotation(e) || optionalAnnotation(this.typeElementToConvert);
         LOG.log(Level.FINEST, () -> String.format("JTExV visiting variable %s%s", name, isIgnored?" (ignored)":""));
         if (isPublic && !members.containsKey(name)) {
             final TSTargetType tsTypeOfExecutable = convertTypeMirrorOfMemberToTsType(e, tsProcessingInfo);
@@ -93,7 +95,8 @@ class JavaTypeElementExtractingVisitor extends SimpleElementVisitor8<Void, Void>
                             .of(
                                     name,
                                     tsTypeOfExecutable,
-                                    isReadOnlyAnnotation)
+                                    isReadOnlyAnnotation,
+                                    isOptionalAnnotation)
                             .withComment(comment));
             if (! isIgnored) extractableMembers.add(name);
         }
@@ -110,6 +113,7 @@ class JavaTypeElementExtractingVisitor extends SimpleElementVisitor8<Void, Void>
             final boolean isPublic = e.getModifiers().contains(Modifier.PUBLIC);
             final boolean isIgnored = isIgnored(e);
             final boolean isReadOnly = readOnlyAnnotation(e) || readOnlyAnnotation(this.typeElementToConvert);
+            final boolean isOptional = optionalAnnotation(e) || optionalAnnotation(this.typeElementToConvert);
             if (isGetter(e) && ( !isPublic ||  isIgnored )) return null; // return early for not converting private types
             final TSTargetType tsTypeOfExecutable = convertTypeMirrorToTsType(e, tsProcessingInfo);
             LOG.fine(() -> "is getter or setter: " + (isPublic ? "public " : " ") + e.getSimpleName() + " -> " + name +"(" + rawName+ ")" + ":" + tsTypeOfExecutable + " " +(isIgnored?"(ignored)":""));
@@ -120,13 +124,14 @@ class JavaTypeElementExtractingVisitor extends SimpleElementVisitor8<Void, Void>
                         .of(
                                 name,
                                 isGetter(e) ? tsTypeOfExecutable : members.get(name).getType(),
-                                isReadOnly)
+                                isReadOnly,
+                                isOptional)
                         .withComment(comment)
                 );
             } else {
                 final Optional<String> comment = Optional.ofNullable(this.tsProcessingInfo.getpEnv().getElementUtils().getDocComment(e));
                 members.put(name, TSRegularMemberBuilder
-                        .of(name, tsTypeOfExecutable, isReadOnly)
+                        .of(name, tsTypeOfExecutable, isReadOnly, isOptional)
                         .withComment(comment)
                 );
             }
@@ -155,6 +160,13 @@ class JavaTypeElementExtractingVisitor extends SimpleElementVisitor8<Void, Void>
         final TypeElement annoTationElement = this.tsProcessingInfo.elementCache().typeElementByCanonicalName(TSReadOnly.class.getCanonicalName());
         return e.getAnnotationMirrors().stream().anyMatch( (x) ->
                 x.getAnnotationType().asElement().equals(annoTationElement)
+        );
+    }
+
+    protected boolean optionalAnnotation(Element e) {
+        final TypeElement annoTationElement = this.tsProcessingInfo.elementCache().typeElementByCanonicalName(TSOptional.class.getCanonicalName());
+        return e.getAnnotationMirrors().stream().anyMatch( (x) ->
+            x.getAnnotationType().asElement().equals(annoTationElement)
         );
     }
 

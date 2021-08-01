@@ -32,6 +32,8 @@ public interface TSMember extends TSMemberElement {
 
     boolean getReadOnly();
 
+    boolean getOptional();
+
     boolean getInvalid();
 
     Optional<String> getComment();

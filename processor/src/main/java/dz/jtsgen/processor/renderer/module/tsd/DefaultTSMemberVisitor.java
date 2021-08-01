@@ -43,7 +43,11 @@ public class DefaultTSMemberVisitor extends OutputVisitor implements TSMemberVis
         getOut().print(IdentHelper.identPrefix(ident));
         if (x.getReadOnly()) getOut().print("readonly ");
         getOut().print(x.getName());
-        getOut().print(": ");
+        if(x.getOptional()) {
+            getOut().print("?: ");
+        } else {
+            getOut().print(": ");
+        }
         getOut().print(x.getType());
         getOut().println(";");
     }
@@ -66,13 +70,21 @@ public class DefaultTSMemberVisitor extends OutputVisitor implements TSMemberVis
                         getOut().print(",");
                     }
                     getOut().print(parameter.getName());
-                    getOut().print(": ");
+                    if(parameter.getOptional()) {
+                        getOut().print("?: ");
+                    } else {
+                        getOut().print(": ");
+                    }
                     getOut().print(parameter.getType());
                 }
             }
         }
         getOut().print(")");
-        getOut().print(": ");
+        if(x.getOptional()) {
+            getOut().print("?: ");
+        } else {
+            getOut().print(": ");
+        }
         getOut().print(x.getType());
         getOut().println(";");
     }

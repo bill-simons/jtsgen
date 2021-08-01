@@ -36,6 +36,9 @@ public abstract class TSRegularMember implements TSMember {
     @Value.Parameter
     public abstract boolean getReadOnly();
 
+    @Value.Parameter
+    public abstract boolean getOptional();
+
     public abstract Optional<String> getComment();
 
     @Value.Default

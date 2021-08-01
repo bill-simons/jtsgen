@@ -32,6 +32,7 @@ class PreserveExecutablesJavaTypeElementExtractingVisitor extends JavaTypeElemen
     final boolean isPublic = e.getModifiers().contains(Modifier.PUBLIC);
     final boolean isIgnored = isIgnored(e);
     final boolean isReadOnly = readOnlyAnnotation(e) || readOnlyAnnotation(this.typeElementToConvert);
+    final boolean isOptional = optionalAnnotation(e) || optionalAnnotation(this.typeElementToConvert);
     final boolean isInit = rawName.startsWith("<");
     if (!isPublic ||  isIgnored || isInit) return null; // return early for not converting private types
     final TSTargetType returnType = convertTypeMirrorToTsType(e, tsProcessingInfo);
@@ -43,7 +44,7 @@ class PreserveExecutablesJavaTypeElementExtractingVisitor extends JavaTypeElemen
     for (VariableElement functionParam : functionParams) {
       final String paramName = functionParam.getSimpleName().toString();
       final TSTargetType paramType = convertTypeMirrorOfMemberToTsType(functionParam, tsProcessingInfo);
-      paramMembers.add(TSRegularMemberBuilder.of(paramName, paramType, false));
+      paramMembers.add(TSRegularMemberBuilder.of(paramName, paramType, false, isOptional));
     }
 
     final TSRegularMember [] parameters = paramMembers.toArray(new TSRegularMember[0]);
@@ -55,13 +56,14 @@ class PreserveExecutablesJavaTypeElementExtractingVisitor extends JavaTypeElemen
               name,
               isGetter(e) ? returnType : members.get(name).getType(),
               isReadOnly,
+              isOptional,
               parameters)
           .withComment(comment)
       );
     } else {
       final Optional<String> comment = Optional.ofNullable(this.tsProcessingInfo.getpEnv().getElementUtils().getDocComment(e));
       members.put(name, TSExecutableMemberBuilder
-          .of(name, returnType, isReadOnly, parameters)
+          .of(name, returnType, isReadOnly, isOptional, parameters)
           .withComment(comment)
       );
     }

@@ -18,6 +18,9 @@ public abstract class TSExecutableMember implements TSMember {
   @Value.Parameter
   public abstract boolean getReadOnly();
 
+  @Value.Parameter
+  public abstract boolean getOptional();
+
   public abstract Optional<String> getComment();
 
   @Value.Parameter
