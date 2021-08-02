@@ -50,7 +50,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import static dz.jtsgen.processor.helper.ElementHelper.typeOf;
-import static dz.jtsgen.processor.jtp.helper.RoundEnvHelper.filteredTypeSriptElements;
+import static dz.jtsgen.processor.jtp.helper.RoundEnvHelper.getFilteredTypeScriptElements;
+import static dz.jtsgen.processor.jtp.helper.RoundEnvHelper.getFilteredTypeScriptExecutableElements;
 import static dz.jtsgen.processor.model.TypeScriptModel.newModelWithDefaultModule;
 import static java.util.logging.Level.INFO;
 
@@ -156,7 +157,7 @@ public class TsGenProcessor extends AbstractProcessorWithLogging {
     private void processTypeScriptAnnotation(TypeElement annotation, RoundEnvironment roundEnv) {
 
         // ignore classes with TSIgnore
-        Set<Element> annotatedElements = filteredTypeSriptElements(roundEnv);
+        Set<Element> annotatedElements = getFilteredTypeScriptElements(roundEnv);
 
         // this is needed for updating data from CLI and calculating a name space mapping, if needed
         new TSModuleInfoEnforcer(this.processingEnv, this.typeScriptModel).createUpdatedTSModuleInfo(annotatedElements).ifPresent(x -> {
@@ -171,7 +172,7 @@ public class TsGenProcessor extends AbstractProcessorWithLogging {
     private void processTypeScriptExecutableAnnotation(TypeElement annotation, RoundEnvironment roundEnv) {
 
         // ignore classes with TSIgnore
-        Set<Element> annotatedElements = filteredTypeSriptElements(roundEnv);
+        Set<Element> annotatedElements = getFilteredTypeScriptExecutableElements(roundEnv);
 
         // this is needed for updating data from CLI and calculating a name space mapping, if needed
         TSModuleInfoEnforcer enforcer = new TSModuleInfoEnforcer(this.processingEnv, this.typeScriptModel);

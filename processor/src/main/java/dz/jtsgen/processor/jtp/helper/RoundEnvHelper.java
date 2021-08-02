@@ -28,7 +28,6 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -36,21 +35,19 @@ import java.util.stream.Collectors;
  */
 public abstract class RoundEnvHelper {
     
-    public static Set<Element> filteredTypeSriptElements(RoundEnvironment roundEnv) {
-        final String tsIgnoreSimpleName = TSIgnore.class.getSimpleName();
-        Predicate<Element> pred = new Predicate<Element>() {
-            @Override public boolean test(Element element) {
-                return element.getAnnotationMirrors().<AnnotationMirror>stream().noneMatch(
-                    (y) -> tsIgnoreSimpleName.equals(y.getAnnotationType().asElement().getSimpleName().toString()));
-            }
-        };
-
+    public static Set<Element> getFilteredTypeScriptElements(RoundEnvironment roundEnv) {
         Set<? extends Element> tsElems = roundEnv.getElementsAnnotatedWith(TypeScript.class);
-        Set<? extends Element> tseElems = roundEnv.getElementsAnnotatedWith(TypeScriptExecutable.class);
-        Set<Element> a = tsElems.<Element>stream().filter(pred).collect(Collectors.toSet());
-        Set<Element> b = tseElems.<Element>stream().filter(pred).collect(Collectors.toSet());
-        a.addAll(b);
-        return a;
+        return tsElems.stream().filter(RoundEnvHelper::noneIgnored).collect(Collectors.toSet());
     }
 
+    public static Set<Element> getFilteredTypeScriptExecutableElements(RoundEnvironment roundEnv) {
+        Set<? extends Element> tsExecElems = roundEnv.getElementsAnnotatedWith(TypeScriptExecutable.class);
+        return tsExecElems.stream().filter(RoundEnvHelper::noneIgnored).collect(Collectors.toSet());
+    }
+
+    private static boolean noneIgnored(Element element) {
+        final String tsIgnoreSimpleName = TSIgnore.class.getSimpleName();
+        return element.getAnnotationMirrors().<AnnotationMirror>stream().noneMatch(
+            (y) -> tsIgnoreSimpleName.equals(y.getAnnotationType().asElement().getSimpleName().toString()));
+    }
 }

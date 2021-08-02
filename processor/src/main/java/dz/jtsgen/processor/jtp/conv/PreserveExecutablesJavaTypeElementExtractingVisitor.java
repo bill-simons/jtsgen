@@ -5,12 +5,14 @@ package dz.jtsgen.processor.jtp.conv;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.AbstractTypeVisitor8;
 
+import dz.jtsgen.annotations.TypeScriptExecutable;
 import dz.jtsgen.processor.jtp.conv.visitors.JavaTypeConverter;
 import dz.jtsgen.processor.jtp.info.TSProcessingInfo;
 import dz.jtsgen.processor.model.TSExecutableMemberBuilder;
@@ -26,6 +28,17 @@ class PreserveExecutablesJavaTypeElementExtractingVisitor extends JavaTypeElemen
 
   @Override
   public Void visitExecutable(ExecutableElement e, Void notcalled) {
+    Element enclosingElement = e.getEnclosingElement();
+    if ((enclosingElement == null) || (enclosingElement.getAnnotation(TypeScriptExecutable.class) == null)) {
+      // This executable element is not part of an interface/class that is annotated with @TypeScriptExecutable
+      // Treat it as a standard @TypeScript annotated class (only bean properties are converted to typescript properties)
+      return super.visitExecutable(e,notcalled);
+    } else {
+      return visitExecutableWorker(e);
+    }
+  }
+
+  public Void visitExecutableWorker(ExecutableElement e) {
     LOG.fine(() -> String.format("JTExV visiting executable %s", e.toString()));
     final String rawName = e.getSimpleName().toString();  //  nameOfMethod(e).orElse("");
     final String name = mappedName(rawName);

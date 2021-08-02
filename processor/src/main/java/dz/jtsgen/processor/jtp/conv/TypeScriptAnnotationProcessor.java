@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static dz.jtsgen.processor.jtp.helper.RoundEnvHelper.filteredTypeSriptElements;
+import static dz.jtsgen.processor.jtp.helper.RoundEnvHelper.getFilteredTypeScriptElements;
 import static java.util.Collections.singletonList;
 
 /**
@@ -46,7 +46,7 @@ public class TypeScriptAnnotationProcessor implements JavaTypeProcessor {
 
     private static Logger LOG = Logger.getLogger(TypeScriptAnnotationProcessor.class.getName());
 
-    private final TSProcessingInfo processingInfo;
+    protected final TSProcessingInfo processingInfo;
 
     private final JavaTypeConverter javaConverter;
 
@@ -66,7 +66,7 @@ public class TypeScriptAnnotationProcessor implements JavaTypeProcessor {
           this.processElements(
                 Sets.union(
                         this.processingInfo.additionalTypesToConvert(),
-                        filteredTypeSriptElements(roundEnv)
+                        getFilteredTypeScriptElements(roundEnv)
                 ));
     }
 
@@ -77,12 +77,13 @@ public class TypeScriptAnnotationProcessor implements JavaTypeProcessor {
     @Override
     public void processElements(Set<Element> elements) {
       SimpleElementVisitor8<Optional<TSType>, JavaTypeConverter> visitor = makeVisitor();
-        for (Element e : elements) {
-          visitor.visit(e, javaConverter).ifPresent(x -> {
-                        processingInfo.getTsModel().addTSTypes(singletonList(x));
-                        LOG.log(Level.FINEST, () -> String.format("TSAP added %s to model", x.toString()));
-                    }
-            );
+      for (Element e : elements) {
+          Optional<TSType> optType = visitor.visit(e, javaConverter);
+          optType.ifPresent(x -> {
+                processingInfo.getTsModel().addTSTypes(singletonList(x));
+                LOG.log(Level.FINEST, () -> String.format("TSAP added %s to model", x.toString()));
+              }
+          );
         }
     }
 }
