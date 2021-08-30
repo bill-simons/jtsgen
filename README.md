@@ -8,7 +8,7 @@ Annotations: [![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/https/
  [![Coverage Status](https://codecov.io/github/dzuvic/jtsgen/coverage.svg?branch=master)](https://codecov.io/github/dzuvic/jtsgen?branch=master)
  [ ![Doc](https://readthedocs.org/projects/jtsgen/badge/?version=latest )](http://jtsgen.readthedocs.io/en/latest/?badge=latest)
 
-## Modifications in this fork
+## Modifications in this fork (only present in branch: release-0.5.0-With-TypeScriptExecutable)
 
 A new annotation @TypeScriptExecutable was added to allow in a java interface to be emitted as functions in the TypeScript interface instead of treating java functions as bean properties (getXyZ() methods would become the typescript property xyz if it were annotated with the original @TypeScript annotation).  
 
