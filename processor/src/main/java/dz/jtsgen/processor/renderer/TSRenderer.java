@@ -27,8 +27,9 @@ public final class TSRenderer {
 
     public void writeFiles() {
         LOG.finest("-- Name Space Mapper --");
-        TypeScriptRenderModel mappedModel = new TypeScriptRenderModel(nameSpaceModelMapper.mapNameSpacesOfModel(this.model));
+        TypeScriptModel mappedModel = nameSpaceModelMapper.mapNameSpacesOfModel(this.model);
+        TypeScriptRenderModel renderModel = new TypeScriptRenderModel(mappedModel);
         LOG.finest("-- Renderer --");
-        new ModuleGenerator(mappedModel, env).writeModule();
+        new ModuleGenerator(renderModel, env).writeModule();
     }
 }

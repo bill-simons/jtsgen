@@ -92,16 +92,22 @@ public class TsGenProcessor extends AbstractProcessorWithLogging {
             } else if (roundEnv.processingOver() && roundEnv.errorRaised()) {
                 LOG.info(() -> "P: processing over. error raised. nothing to do");
             } else {
-                PROCESSING_ORDER.forEach(
-                        (x) -> {
-                            final Optional<? extends TypeElement> annotation = annotations
-                                    .stream()
-                                    .filter((y) -> y.getSimpleName().contentEquals(x.getSimpleName()))
-                                    .findFirst();
-                            LOG.finest(() -> String.format("P: Annotation %s member %s", x, annotation.isPresent()));
-                            annotation.ifPresent(typeElement -> processElements(typeElement, roundEnv));
+                for (Class<?> types : PROCESSING_ORDER) {
+                    String name = types.getSimpleName();
+                    Optional<? extends TypeElement> optAnnoType = annotations.stream()
+                        .filter(te -> te.getSimpleName().contentEquals(name))
+                        .findFirst();
+                    if(optAnnoType.isPresent()) {
+                        TypeElement annoType = optAnnoType.get();
+                        if (typeOf(annoType, TSModule.class)) {
+                            processModule(roundEnv);
+                        } else if (typeOf(annoType, TypeScript.class)) {
+                            processTypeScriptAnnotation(annoType, roundEnv);
+                        } else  if (typeOf(annoType, TypeScriptExecutable.class)) {
+                            processTypeScriptExecutableAnnotation(annoType, roundEnv);
                         }
-                );
+                    }
+                }
                 postProcess(annotations);
             }
         } catch (Exception e) {
@@ -113,6 +119,17 @@ public class TsGenProcessor extends AbstractProcessorWithLogging {
         return true;
     }
 
+    private void processModule(RoundEnvironment roundEnv) {
+        Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(TSModule.class);
+        if (annotatedElements.size() > 1) annotatedElements.forEach(
+            x -> this.processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Multiple TSModule not supported. Multiple Modules with same ", x));
+        new TSModuleHandler(this.processingEnv)
+            .process(annotatedElements)
+            .stream()
+            .findFirst()
+            .ifPresent(this.typeScriptModel::addModuleInfo);
+    }
+
     /**
      * post process in case, only TSModule is defined and types to convert are defined in TSModule annotation
      */
@@ -121,37 +138,40 @@ public class TsGenProcessor extends AbstractProcessorWithLogging {
             LOG.fine("P: Start PostPressing");
 //            this.typeScriptModel.getModuleInfo().additionalTypes().stream().map( )
             // ignore classes with TSIgnore
-            final TSProcessingInfo processingInfo = TSProcessingInfoBuilder.of(this.processingEnv, this.typeScriptModel);
-            final JavaTypeProcessor handler = new TypeScriptAnnotationProcessor(processingInfo);
-            // this is needed for updating data from CLI and calculating a name space mapping, if needed
-            new TSModuleInfoEnforcer(this.processingEnv, this.typeScriptModel).createUpdatedTSModuleInfo(processingInfo.additionalTypesToConvert()).ifPresent(x -> {
-                typeScriptModel.addModuleInfo(x);
-                handler.processElements(processingInfo.additionalTypesToConvert());
-            });
 
+            final TSProcessingInfo processingInfo = TSProcessingInfoBuilder.of(this.processingEnv, this.typeScriptModel);
+            TSModuleInfoEnforcer enforcer = new TSModuleInfoEnforcer(this.processingEnv, this.typeScriptModel);
+            Optional<TSModuleInfo> optInfo = enforcer.createUpdatedTSModuleInfo(processingInfo.additionalTypesToConvert());
+            if(optInfo.isPresent()) {
+                // this is needed for updating data from CLI and calculating a name space mapping, if needed
+                TSModuleInfo info = optInfo.get();
+                typeScriptModel.addModuleInfo(info);
+                final JavaTypeProcessor handler = new TypeScriptAnnotationProcessor(processingInfo);
+                handler.processElements(processingInfo.additionalTypesToConvert());
+            }
         } else {
             LOG.finest("P: No PostPressing needed");
         }
     }
 
-    // process all annotations
-    private void processElements(TypeElement annotation, RoundEnvironment roundEnv) {
-        LOG.info(() -> String.format("P: Processing Annotation %s", annotation.getSimpleName()));
-        if (typeOf(annotation, TypeScript.class)) {
-            processTypeScriptAnnotation(annotation, roundEnv);
-        } else  if (typeOf(annotation, TypeScriptExecutable.class)) {
-            processTypeScriptExecutableAnnotation(annotation, roundEnv);
-        } else if (typeOf(annotation, TSModule.class)) {
-            Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(TSModule.class);
-            if (annotatedElements.size() > 1) annotatedElements.forEach(
-                    x -> this.processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Multiple TSModule not supported. Multiple Modules with same ", x));
-            new TSModuleHandler(this.processingEnv)
-                    .process(annotatedElements)
-                    .stream()
-                    .findFirst()
-                    .ifPresent(this.typeScriptModel::addModuleInfo);
-        }
-    }
+//    // process all annotations
+//    private void processElements(TypeElement annotation, RoundEnvironment roundEnv) {
+//        LOG.info(() -> String.format("P: Processing Annotation %s", annotation.getSimpleName()));
+//        if (typeOf(annotation, TypeScript.class)) {
+//            processTypeScriptAnnotation(annotation, roundEnv);
+//        } else  if (typeOf(annotation, TypeScriptExecutable.class)) {
+//            processTypeScriptExecutableAnnotation(annotation, roundEnv);
+//        } else if (typeOf(annotation, TSModule.class)) {
+//            Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(TSModule.class);
+//            if (annotatedElements.size() > 1) annotatedElements.forEach(
+//                    x -> this.processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Multiple TSModule not supported. Multiple Modules with same ", x));
+//            new TSModuleHandler(this.processingEnv)
+//                    .process(annotatedElements)
+//                    .stream()
+//                    .findFirst()
+//                    .ifPresent(this.typeScriptModel::addModuleInfo);
+//        }
+//    }
 
     // process TypeScript Annotation this is after processing @TSModule
     private void processTypeScriptAnnotation(TypeElement annotation, RoundEnvironment roundEnv) {
@@ -160,13 +180,15 @@ public class TsGenProcessor extends AbstractProcessorWithLogging {
         Set<Element> annotatedElements = getFilteredTypeScriptElements(roundEnv);
 
         // this is needed for updating data from CLI and calculating a name space mapping, if needed
-        new TSModuleInfoEnforcer(this.processingEnv, this.typeScriptModel).createUpdatedTSModuleInfo(annotatedElements).ifPresent(x -> {
-            typeScriptModel.addModuleInfo(x);
-
+        TSModuleInfoEnforcer enforcer = new TSModuleInfoEnforcer(this.processingEnv, this.typeScriptModel);
+        Optional<TSModuleInfo> optInfo = enforcer.createUpdatedTSModuleInfo(annotatedElements);
+        if(optInfo.isPresent()) {
+            TSModuleInfo info = optInfo.get();
+            typeScriptModel.addModuleInfo(info);
             final TSProcessingInfo TSProcessingInfo = TSProcessingInfoBuilder.of(this.processingEnv, typeScriptModel);
             final JavaTypeProcessor handler = new TypeScriptAnnotationProcessor(TSProcessingInfo);
             handler.processAnnotations(roundEnv);
-        });
+        }
     }
 
     private void processTypeScriptExecutableAnnotation(TypeElement annotation, RoundEnvironment roundEnv) {

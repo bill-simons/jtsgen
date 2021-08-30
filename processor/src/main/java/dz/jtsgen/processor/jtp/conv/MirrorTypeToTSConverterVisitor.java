@@ -112,14 +112,15 @@ class MirrorTypeToTSConverterVisitor extends AbstractTypeVisitor8<TSTargetType, 
 
     private Optional<TSTargetType> extractType(DeclaredType t) {
         final String nameOfType = withoutTypeArgs(t.toString());
-        return firstOptional(
-                ()-> directConversionType(t, nameOfType, tsProcessingInfo.declaredTypeConversions(), env()),
-                ()-> typeInModel(t, nameOfType),
-                ()-> typeNotInModel(t,nameOfType)
+        Optional<TSTargetType> opt = firstOptional(
+            () -> directConversionType(t, nameOfType, tsProcessingInfo.declaredTypeConversions(), env()),
+            () -> typeInModel(t, nameOfType),
+            () -> typeNotInModel(t, nameOfType)
         ).map(x -> {
-                    if (x.typeParameters().size() > 0) return typeParametrized(t, x);
-                    else return x;
-                });
+            if (x.typeParameters().size() > 0) return typeParametrized(t, x);
+            else return x;
+        });
+        return opt;
     }
 
     // check if type is in declared type

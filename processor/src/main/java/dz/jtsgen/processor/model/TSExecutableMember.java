@@ -40,4 +40,8 @@ public abstract class TSExecutableMember implements TSMember {
   public TSMember changedTSTarget(TSTargetType newTargetType) {
     return TSExecutableMemberBuilder.copyOf(this).withType(newTargetType);
   }
+
+  public static TSMember changeTSParameterTargets(TSExecutableMember executableMember, TSRegularMember [] parameters) {
+    return TSExecutableMemberBuilder.copyOf(executableMember).withParameters(parameters);
+  }
 }

@@ -16,6 +16,7 @@ import dz.jtsgen.annotations.TypeScriptExecutable;
 import dz.jtsgen.processor.jtp.conv.visitors.JavaTypeConverter;
 import dz.jtsgen.processor.jtp.info.TSProcessingInfo;
 import dz.jtsgen.processor.model.TSExecutableMemberBuilder;
+import dz.jtsgen.processor.model.TSMember;
 import dz.jtsgen.processor.model.TSRegularMember;
 import dz.jtsgen.processor.model.TSRegularMemberBuilder;
 import dz.jtsgen.processor.model.TSTargetType;
@@ -56,30 +57,23 @@ class PreserveExecutablesJavaTypeElementExtractingVisitor extends JavaTypeElemen
     final List<? extends VariableElement> functionParams = e.getParameters();
     for (VariableElement functionParam : functionParams) {
       final String paramName = functionParam.getSimpleName().toString();
-      final TSTargetType paramType = convertTypeMirrorOfMemberToTsType(functionParam, tsProcessingInfo);
-      paramMembers.add(TSRegularMemberBuilder.of(paramName, paramType, false, isOptional));
+      TSMember tsMember = members.get(paramName);
+      if(tsMember instanceof TSRegularMember) {
+        TSRegularMember paramMember = (TSRegularMember) tsMember;
+        paramMembers.add(paramMember);
+      } else {
+        final TSTargetType paramType = convertTypeMirrorOfMemberToTsType(functionParam, tsProcessingInfo);
+        paramMembers.add(TSRegularMemberBuilder.of(paramName, paramType, false, isOptional));
+      }
     }
 
     final TSRegularMember [] parameters = paramMembers.toArray(new TSRegularMember[0]);
-    if (members.containsKey(name)) {
-      // can't be read only anymore
-      final Optional<String> comment = Optional.ofNullable(this.tsProcessingInfo.getpEnv().getElementUtils().getDocComment(e));
-      members.put(name, TSExecutableMemberBuilder
-          .of(
-              name,
-              isGetter(e) ? returnType : members.get(name).getType(),
-              isReadOnly,
-              isOptional,
-              parameters)
-          .withComment(comment)
-      );
-    } else {
-      final Optional<String> comment = Optional.ofNullable(this.tsProcessingInfo.getpEnv().getElementUtils().getDocComment(e));
-      members.put(name, TSExecutableMemberBuilder
-          .of(name, returnType, isReadOnly, isOptional, parameters)
-          .withComment(comment)
-      );
-    }
+    final Optional<String> comment = Optional.ofNullable(this.tsProcessingInfo.getpEnv().getElementUtils().getDocComment(e));
+    members.put(name, TSExecutableMemberBuilder
+        .of(name, returnType, isReadOnly, isOptional, parameters)
+        .withComment(comment)
+    );
+
     extractableMembers.add(name);
     return null;
   }

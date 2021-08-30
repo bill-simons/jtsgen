@@ -24,12 +24,13 @@ import dz.jtsgen.processor.model.*;
 
 import javax.lang.model.element.Element;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 final class DefaultNameSpaceModelMapper implements NameSpaceModelMapper {
-    private static Logger LOG = Logger.getLogger(DefaultNameSpaceModelMapper.class.getName());
+    private static final Logger LOG = Logger.getLogger(DefaultNameSpaceModelMapper.class.getName());
 
     private final TSModuleInfo moduleInfo;
 
@@ -63,12 +64,32 @@ final class DefaultNameSpaceModelMapper implements NameSpaceModelMapper {
     }
 
     private List<TSMember> mapMembers(List<TSMember> members, NameSpaceMapper mapper) {
-        return members.stream().map (x -> {
-            TSTargetType newTSTarget = x.getType().mapNameSpace(mapper);
-            LOG.finest(() -> "DNSM mapping member " + x.getName() + ": " + x.getType() + " -> " + newTSTarget);
-            return x.changedTSTarget(newTSTarget);
-        }).collect(Collectors.toList());
+        List<TSMember> out = new ArrayList<>();
+        for (TSMember member : members) {
+            TSTargetType newTSTarget = member.getType().mapNameSpace(mapper);
+            LOG.finest(() -> "DNSM mapping member " + member.getName() + ": " + member.getType() + " -> " + newTSTarget);
+            TSMember modMember = member.changedTSTarget(newTSTarget);
+            if(modMember instanceof TSExecutableMember) {
+                TSExecutableMember execMember = (TSExecutableMember) modMember;
+                TSRegularMember[] modParams = Arrays.stream(execMember.getParameters())
+                    .map(param -> {
+                        TSTargetType tt = param.getType().mapNameSpace(mapper);
+                        LOG.finest(() -> "DNSM mapping parameter " + param.getName() + ": " + param.getType() + " -> " + tt);
+                        return (TSRegularMember)param.changedTSTarget(tt);
+                     })
+                    .toArray(TSRegularMember[]::new);
+                modMember = TSExecutableMember.changeTSParameterTargets(execMember,modParams);
+            }
+            out.add(modMember);
+        }
+        return out;
     }
+//        return members.stream().map (x -> {
+//            TSTargetType newTSTarget = x.getType().mapNameSpace(mapper);
+//            System.out.println("DNSM mapping member " + x.getName() + ": " + x.getType() + " -> " + newTSTarget);
+//            // LOG.finest(() -> "DNSM mapping member " + x.getName() + ": " + x.getType() + " -> " + newTSTarget);
+//            return x.changedTSTarget(newTSTarget);
+//        }).collect(Collectors.toList());
 
     private List<NameSpaceMapping> calculateMapping(TypeScriptModel model) {
         List<? extends Element> elements = model.getTsTypes().stream()
