@@ -26,6 +26,7 @@ import dz.jtsgen.processor.model.TSModuleInfo;
 import dz.jtsgen.processor.model.TSType;
 import dz.jtsgen.processor.model.TypeScriptModel;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static dz.jtsgen.annotations.OutputType.*;
@@ -45,7 +46,9 @@ public class TypeScriptRenderModel extends TypeScriptModel {
     }
 
     public List<TSType> getTsTypesByModule(TSModuleInfo module) {
-        return super.getTsTypes();
+        List<TSType> typeList = super.getTsTypes();
+        typeList.sort(Comparator.comparing(TSType::getName));
+        return typeList;
     }
 
     public OutputType getOutputType() {

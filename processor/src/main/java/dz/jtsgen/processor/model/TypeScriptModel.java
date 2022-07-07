@@ -67,11 +67,14 @@ public class TypeScriptModel {
     }
 
     public TypeScriptModel withMappedData(List<TSType> mappedTSTypes) {
-        return new TypeScriptModel(mappedTSTypes,this.getTsTargetTypes(),this.moduleInfo);
+        List<TSType> typeList = new ArrayList<>(mappedTSTypes);
+        typeList.sort(Comparator.comparing(TSType::getName));
+        return new TypeScriptModel(typeList,this.getTsTargetTypes(),this.moduleInfo);
     }
 
 
     public List<TSType> getTsTypes() {
+        tsTypes.sort(Comparator.comparing(TSType::getName));
         return tsTypes;
     }
 
@@ -88,7 +91,13 @@ public class TypeScriptModel {
     }
 
     private Map<String, TSTargetType> getTsTargetTypes() {
-        return tsTargetTypes;
+        List<String> typeNames = new ArrayList<>(tsTargetTypes.keySet());
+        typeNames.sort(String::compareTo);
+        Map<String,TSTargetType> map = new LinkedHashMap<>();
+        for (String typeName : typeNames) {
+            map.put(typeName,tsTargetTypes.get(typeName));
+        }
+        return map;
     }
 
     public boolean usesDefaultNameSpaceMapping() {
